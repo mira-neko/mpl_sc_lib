@@ -1,0 +1,8 @@
+[package]
+name = "mpl_sc_lib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+mplvm_parser = {git = "https://github.com/miralushch/mplvm_parser.git", version = "0.1.1"}
+nom = "7.1.2"
