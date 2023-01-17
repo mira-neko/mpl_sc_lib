@@ -1,5 +1,4 @@
 use std::fmt;
-
 mod ast;
 mod ast_indexed;
 
@@ -14,6 +13,13 @@ impl From<&str> for Parser {
 impl fmt::Display for Parser {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         self.0.fmt(f)
+    }
+}
+
+impl Parser {
+    #[allow(dead_code)]
+    fn eval(&self, debug: bool) -> Option<()> {
+        mplvm_parser::parse(&format!("{}", self.0)).eval(debug)
     }
 }
 
