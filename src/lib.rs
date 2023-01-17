@@ -18,7 +18,7 @@ impl fmt::Display for Parser {
 
 impl Parser {
     #[allow(dead_code)]
-    fn eval(&self, debug: bool) -> Option<()> {
+    pub fn eval(&self, debug: bool) -> Option<()> {
         mplvm_parser::parse(&format!("{}", self.0)).eval(debug)
     }
 }
