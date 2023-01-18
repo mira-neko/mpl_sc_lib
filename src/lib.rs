@@ -19,7 +19,7 @@ impl fmt::Display for Parser {
 impl Parser {
     #[allow(dead_code)]
     pub fn eval(&self, debug: bool) -> Option<()> {
-        mplvm_parser::parse(&format!("{}", self.0)).eval(debug)
+        mplvm_parser::parse(&self.0.to_string()).eval(debug)
     }
 }
 
@@ -33,6 +33,6 @@ mod test {
 
         let program = Parser::from(source);
 
-        assert!(format!("{program}") == "psh 2\npsh 2\nadd\npek\npop\n");
+        assert!(program.to_string() == "psh 2\npsh 2\nadd\npek\npop\n");
     }
 }
