@@ -18,8 +18,18 @@ impl fmt::Display for Parser {
 
 impl Parser {
     #[allow(dead_code)]
-    pub fn eval(&self, debug: bool) -> Option<()> {
-        mplvm_parser::parse(&self.0.to_string()).eval(debug)
+    pub fn eval<F: FnMut() -> Option<f64>>(&self, input: &mut F, debug: bool) -> Option<()> {
+        for res in mplvm_parser::parse(&self.0.to_string(), input, debug) {
+            let Ok(opt) = res else {
+                return None
+            };
+
+            if let Some(val) = opt {
+                println!("{val}");
+            }
+        }
+
+        Some(())
     }
 }
 
