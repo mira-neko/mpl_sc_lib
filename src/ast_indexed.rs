@@ -75,10 +75,13 @@ impl AstIndexed {
             ),
             Ast::Value(v) => AstIndexed::Value(v),
             Ast::Idnt(name) => AstIndexed::Indx(AstIndexed::get(name, memmgr)),
-            Ast::Assign(var_name, inner) => AstIndexed::Assign(
-                AstIndexed::assign(var_name, memmgr.clone()),
-                Box::new(AstIndexed::new(*inner, memmgr, state)),
-            ),
+            Ast::Assign(var_name, inner) => {
+                let inner = Box::new(AstIndexed::new(*inner, memmgr.clone(), state));
+                AstIndexed::Assign(
+                    AstIndexed::assign(var_name, memmgr),
+                    inner,
+                )
+            }
             Ast::Func(func_name, args) => AstIndexed::Func(
                 func_name,
                 args.into_iter()
