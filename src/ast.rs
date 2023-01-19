@@ -31,6 +31,36 @@ impl From<&str> for Ast {
     }
 }
 
+macro_rules! op {
+    ($name:ident, $op:literal, $func:literal) => {
+        fn $name(input: &str) -> IResult<&str, Ast> {
+            let (rest, value) = pair(
+                terminated(alt((Ast::func, Ast::value, Ast::idnt)), tag($op)),
+                alt((Ast::func, Ast::value, Ast::idnt)),
+            )(input)?;
+            Ok((rest, Ast::Func($func.to_string(), vec![value.0, value.1])))
+        }
+    };
+}
+
+macro_rules! assign_op {
+    ($name:ident, $op:literal, $func:literal) => {
+        fn $name(input: &str) -> IResult<&str, Ast> {
+            let (rest, value) = pair(terminated(alphanumeric1, tag($op)), Ast::exp)(input)?;
+            Ok((
+                rest,
+                Ast::Assign(
+                    value.0.to_string(),
+                    Box::new(Ast::Func(
+                        $func.to_string(),
+                        vec![Ast::Idnt(value.0.to_string()), value.1],
+                    )),
+                ),
+            ))
+        }
+    };
+}
+
 impl Ast {
     fn program(input: &str) -> IResult<&str, Ast> {
         let (rest, value) = terminated(many0(Ast::instruction), eof)(input)?;
@@ -41,6 +71,7 @@ impl Ast {
         delimited(
             multispace0,
             alt((
+                Ast::swap,
                 Ast::label,
                 Ast::goto_if,
                 Ast::goto_if_not,
@@ -49,6 +80,7 @@ impl Ast {
                 Ast::while_not,
                 Ast::elihw,
                 Ast::assign,
+                Ast::assign_op,
                 Ast::func,
             )),
             newline,
@@ -57,6 +89,14 @@ impl Ast {
 
     fn exp(input: &str) -> IResult<&str, Ast> {
         alt((Ast::op, Ast::func, Ast::value, Ast::idnt))(input)
+    }
+
+    fn swap(input: &str) -> IResult<&str, Ast> {
+        let (rest, value) = pair(
+            preceded(tag("swap "), Ast::idnt),
+            preceded(tag(" and "), Ast::idnt),
+        )(input)?;
+        Ok((rest, Ast::Func("swap".to_string(), vec![value.0, value.1])))
     }
 
     fn label(input: &str) -> IResult<&str, Ast> {
@@ -118,29 +158,36 @@ impl Ast {
     }
 
     fn op(input: &str) -> IResult<&str, Ast> {
-        let (rest, value) = pair(
-            pair(
-                alt((Ast::func, Ast::value, Ast::idnt)),
-                alt((tag(" + "), tag(" - "), tag(" * "), tag(" / "), tag(" % "))),
-            ),
-            alt((Ast::func, Ast::value, Ast::idnt)),
-        )(input)?;
-        Ok((
-            rest,
-            Ast::Func(
-                match value.0 .1 {
-                    " + " => "add",
-                    " - " => "sub",
-                    " * " => "mul",
-                    " / " => "div",
-                    " % " => "mod",
-                    _ => unreachable!(),
-                }
-                .to_string(),
-                vec![value.0 .0, value.1],
-            ),
-        ))
+        alt((
+            Ast::op_add,
+            Ast::op_sub,
+            Ast::op_mul,
+            Ast::op_div,
+            Ast::op_mod,
+        ))(input)
     }
+
+    op!(op_add, " + ", "add");
+    op!(op_sub, " - ", "sub");
+    op!(op_mul, " * ", "mul");
+    op!(op_div, " / ", "div");
+    op!(op_mod, " % ", "mod");
+
+    fn assign_op(input: &str) -> IResult<&str, Ast> {
+        alt((
+            Ast::assign_op_add,
+            Ast::assign_op_sub,
+            Ast::assign_op_mul,
+            Ast::assign_op_div,
+            Ast::assign_op_mod,
+        ))(input)
+    }
+
+    assign_op!(assign_op_add, " += ", "add");
+    assign_op!(assign_op_sub, " -= ", "sub");
+    assign_op!(assign_op_mul, " *= ", "mul");
+    assign_op!(assign_op_div, " /= ", "div");
+    assign_op!(assign_op_mod, " %= ", "mod");
 
     fn func(input: &str) -> IResult<&str, Ast> {
         let (rest, value) = pair(
