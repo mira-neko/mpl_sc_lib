@@ -2,6 +2,7 @@ use std::fmt;
 mod ast;
 mod ast_indexed;
 
+#[derive(Debug)]
 pub struct Parser(ast_indexed::AstIndexed);
 
 impl From<&str> for Parser {
