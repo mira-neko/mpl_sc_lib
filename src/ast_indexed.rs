@@ -73,12 +73,18 @@ impl AstIndexed {
         state: Rc<RefCell<State>>,
     ) -> AstIndexed {
         match ast {
-            Ast::Root(inner) => AstIndexed::Root(
-                inner
-                    .into_iter()
-                    .map(|inst| AstIndexed::new(inst, memmgr.clone(), state.clone()))
-                    .collect(),
-            ),
+            Ast::Root(inner) => {
+                let root = AstIndexed::Root(
+                    inner
+                        .into_iter()
+                        .map(|inst| AstIndexed::new(inst, memmgr.clone(), state.clone()))
+                        .collect(),
+                );
+                if !state.borrow()._while.is_empty() {
+                    panic!("unclosed while");
+                }
+                root
+            }
             Ast::Value(v) => AstIndexed::Value(v),
             Ast::Idnt(name) => AstIndexed::Indx(AstIndexed::get(name, memmgr)),
             Ast::Assign(var_name, inner) => {
@@ -149,7 +155,7 @@ impl AstIndexed {
             }
             Ast::Elihw => {
                 let mut local_state = state.borrow_mut();
-                let (cond, ty) = local_state._while.pop().unwrap();
+                let (cond, ty) = local_state._while.pop().expect("there are more elihws then whiles");
                 let name = format!("while_{cond:?}");
                 if ty {
                     AstIndexed::GotoIf(AstIndexed::get(name, memmgr), cond)
