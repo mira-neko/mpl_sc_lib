@@ -15,7 +15,14 @@ pub(super) enum Ast {
     Value(f64),
     Idnt(String),
     Assign(String, Box<Ast>),
-    Func(String, Vec<Ast>),
+    Input,
+    Print(Vec<Ast>),
+    Add(Box<Ast>, Box<Ast>),
+    Sub(Box<Ast>, Box<Ast>),
+    Mul(Box<Ast>, Box<Ast>),
+    Div(Box<Ast>, Box<Ast>),
+    Mod(Box<Ast>, Box<Ast>),
+    Swap(String, String),
     Label(String),
     Goto(String),
     GotoIf(String, Box<Ast>),
@@ -32,28 +39,28 @@ impl From<&str> for Ast {
 }
 
 macro_rules! op {
-    ($name:ident, $op:literal, $func:literal) => {
+    ($name:ident, $op:literal, $op_name:ident) => {
         fn $name(input: &str) -> IResult<&str, Ast> {
             let (rest, value) = pair(
-                terminated(alt((Ast::func, Ast::value, Ast::idnt)), tag($op)),
-                alt((Ast::func, Ast::value, Ast::idnt)),
+                terminated(alt((delimited(tag("("), Ast::op, tag(")")), Ast::func, Ast::value, Ast::idnt)), tag($op)),
+                alt((delimited(tag("("), Ast::op, tag(")")), Ast::func, Ast::value, Ast::idnt)),
             )(input)?;
-            Ok((rest, Ast::Func($func.to_string(), vec![value.0, value.1])))
+            Ok((rest, Ast::$op_name(Box::new(value.0), Box::new(value.1))))
         }
     };
 }
 
 macro_rules! assign_op {
-    ($name:ident, $op:literal, $func:literal) => {
+    ($name:ident, $op:literal, $op_name:ident) => {
         fn $name(input: &str) -> IResult<&str, Ast> {
             let (rest, value) = pair(terminated(alphanumeric1, tag($op)), Ast::exp)(input)?;
             Ok((
                 rest,
                 Ast::Assign(
                     value.0.to_string(),
-                    Box::new(Ast::Func(
-                        $func.to_string(),
-                        vec![Ast::Idnt(value.0.to_string()), value.1],
+                    Box::new(Ast::$op_name(
+                        Box::new(Ast::Idnt(value.0.to_string())),
+                        Box::new(value.1)
                     )),
                 ),
             ))
@@ -93,10 +100,10 @@ impl Ast {
 
     fn swap(input: &str) -> IResult<&str, Ast> {
         let (rest, value) = pair(
-            preceded(tag("swap "), Ast::idnt),
-            preceded(tag(" and "), Ast::idnt),
+            preceded(tag("swap "), alphanumeric1),
+            preceded(tag(" and "), alphanumeric1),
         )(input)?;
-        Ok((rest, Ast::Func("swap".to_string(), vec![value.0, value.1])))
+        Ok((rest, Ast::Swap(value.0.to_string(), value.1.to_string())))
     }
 
     fn label(input: &str) -> IResult<&str, Ast> {
@@ -167,11 +174,11 @@ impl Ast {
         ))(input)
     }
 
-    op!(op_add, " + ", "add");
-    op!(op_sub, " - ", "sub");
-    op!(op_mul, " * ", "mul");
-    op!(op_div, " / ", "div");
-    op!(op_mod, " % ", "mod");
+    op!(op_add, " + ", Add);
+    op!(op_sub, " - ", Sub);
+    op!(op_mul, " * ", Mul);
+    op!(op_div, " / ", Div);
+    op!(op_mod, " % ", Mod);
 
     fn assign_op(input: &str) -> IResult<&str, Ast> {
         alt((
@@ -183,21 +190,27 @@ impl Ast {
         ))(input)
     }
 
-    assign_op!(assign_op_add, " += ", "add");
-    assign_op!(assign_op_sub, " -= ", "sub");
-    assign_op!(assign_op_mul, " *= ", "mul");
-    assign_op!(assign_op_div, " /= ", "div");
-    assign_op!(assign_op_mod, " %= ", "mod");
+    assign_op!(assign_op_add, " += ", Add);
+    assign_op!(assign_op_sub, " -= ", Sub);
+    assign_op!(assign_op_mul, " *= ", Mul);
+    assign_op!(assign_op_div, " /= ", Div);
+    assign_op!(assign_op_mod, " %= ", Mod);
 
     fn func(input: &str) -> IResult<&str, Ast> {
-        let (rest, value) = pair(
-            alphanumeric1,
-            delimited(
-                tag("("),
-                separated_list0(terminated(tag(","), multispace0), Ast::exp),
-                tag(")"),
-            ),
+        alt((Ast::inp, Ast::print))(input)
+    }
+
+    fn inp(input: &str) -> IResult<&str, Ast> {
+        let (rest, _) = tag("input()")(input)?;
+        Ok((rest, Ast::Input))
+    }
+
+    fn print(input: &str) -> IResult<&str, Ast> {
+        let (rest, value) = delimited(
+            tag("print("),
+            separated_list0(terminated(tag(","), multispace0), Ast::exp),
+            tag(")"),
         )(input)?;
-        Ok((rest, Ast::Func(value.0.to_string(), value.1)))
+        Ok((rest, Ast::Print(value)))
     }
 }

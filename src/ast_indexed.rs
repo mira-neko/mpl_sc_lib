@@ -8,7 +8,14 @@ pub(super) enum AstIndexed {
     Value(f64),
     Indx(u8),
     Assign(u8, Box<AstIndexed>),
-    Func(String, Vec<AstIndexed>),
+    Input,
+    Print(Vec<AstIndexed>),
+    Add(Box<AstIndexed>, Box<AstIndexed>),
+    Sub(Box<AstIndexed>, Box<AstIndexed>),
+    Mul(Box<AstIndexed>, Box<AstIndexed>),
+    Div(Box<AstIndexed>, Box<AstIndexed>),
+    Mod(Box<AstIndexed>, Box<AstIndexed>),
+    Swap(u8, u8),
     Label(u8),
     Goto(u8),
     GotoIf(u8, Box<AstIndexed>),
@@ -34,24 +41,19 @@ impl fmt::Display for AstIndexed {
             AstIndexed::Value(v) => writeln!(f, "psh {v}"),
             AstIndexed::Indx(id) => writeln!(f, "sap {id}\npfa"),
             AstIndexed::Assign(var_idx, inner) => writeln!(f, "{inner}sap {var_idx}\npta"),
-            AstIndexed::Func(func_name, args) => match func_name.as_str() {
-                "swap" => {
-                    if let (AstIndexed::Indx(id0), AstIndexed::Indx(id1)) = (&args[0], &args[1]) {
-                        writeln!(
-                            f,
-                            "sap {id0}\npfa\nsap {id1}\npfa\nsap {id0}\npta\nsap {id1}\npta"
-                        )
-                    } else {
-                        panic!("swap cannot be done like that")
-                    }
-                }
-                "print" => writeln!(f, "{}pek\npop", args[0]),
-                "input" => writeln!(f, "inp"),
-                _ => args
-                    .iter()
-                    .try_for_each(|arg| arg.fmt(f))
-                    .and_then(|_| writeln!(f, "{func_name}")),
-            },
+            AstIndexed::Input => writeln!(f, "inp"),
+            AstIndexed::Print(args) => args
+                .iter()
+                .try_for_each(|arg| writeln!(f, "{arg}pek\npop")),
+            AstIndexed::Add(inner1, inner2) => inner1.fmt(f).and_then(|_| inner2.fmt(f)).and_then(|_| writeln!(f, "add")),
+            AstIndexed::Sub(inner1, inner2) => inner1.fmt(f).and_then(|_| inner2.fmt(f)).and_then(|_| writeln!(f, "sub")),
+            AstIndexed::Mul(inner1, inner2) => inner1.fmt(f).and_then(|_| inner2.fmt(f)).and_then(|_| writeln!(f, "mul")),
+            AstIndexed::Div(inner1, inner2) => inner1.fmt(f).and_then(|_| inner2.fmt(f)).and_then(|_| writeln!(f, "div")),
+            AstIndexed::Mod(inner1, inner2) => inner1.fmt(f).and_then(|_| inner2.fmt(f)).and_then(|_| writeln!(f, "mod")),
+            AstIndexed::Swap(id0, id1) => writeln!(
+                f,
+                "sap {id0}\npfa\nsap {id1}\npfa\nsap {id0}\npta\nsap {id1}\npta"
+            ),
             AstIndexed::Label(id) => writeln!(f, "sap {id}\nipta"),
             AstIndexed::Goto(id) => writeln!(f, "sap {id}\njmpa"),
             AstIndexed::GotoIf(id, cond) => writeln!(f, "{cond}sap {id}\njiza"),
@@ -82,12 +84,33 @@ impl AstIndexed {
                     inner,
                 )
             }
-            Ast::Func(func_name, args) => AstIndexed::Func(
-                func_name,
+            Ast::Input => AstIndexed::Input,
+            Ast::Print(args) => AstIndexed::Print(
                 args.into_iter()
                     .map(|arg| AstIndexed::new(arg, memmgr.clone(), state.clone()))
                     .collect(),
             ),
+            Ast::Add(inner1, inner2) => AstIndexed::Add(
+                Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
+                Box::new(AstIndexed::new(*inner2, memmgr, state))
+            ),
+            Ast::Sub(inner1, inner2) => AstIndexed::Sub(
+                Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
+                Box::new(AstIndexed::new(*inner2, memmgr, state))
+            ),
+            Ast::Mul(inner1, inner2) => AstIndexed::Mul(
+                Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
+                Box::new(AstIndexed::new(*inner2, memmgr, state))
+            ),
+            Ast::Div(inner1, inner2) => AstIndexed::Div(
+                Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
+                Box::new(AstIndexed::new(*inner2, memmgr, state))
+            ),
+            Ast::Mod(inner1, inner2) => AstIndexed::Mod(
+                Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
+                Box::new(AstIndexed::new(*inner2, memmgr, state))
+            ),
+            Ast::Swap(var1, var2) => AstIndexed::Swap(AstIndexed::assign(var1, memmgr.clone()), AstIndexed::assign(var2, memmgr)),
             Ast::Label(name) => AstIndexed::Label(AstIndexed::assign(name, memmgr)),
             Ast::Goto(name) => AstIndexed::Goto(AstIndexed::get(name, memmgr)),
             Ast::GotoIf(name, cond) => AstIndexed::GotoIf(
