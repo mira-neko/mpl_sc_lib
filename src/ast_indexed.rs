@@ -15,6 +15,8 @@ pub(super) enum AstIndexed {
     Mul(Box<AstIndexed>, Box<AstIndexed>),
     Div(Box<AstIndexed>, Box<AstIndexed>),
     Mod(Box<AstIndexed>, Box<AstIndexed>),
+    Max(Box<AstIndexed>, Box<AstIndexed>),
+    Min(Box<AstIndexed>, Box<AstIndexed>),
     Swap(u8, u8),
     Label(u8),
     Goto(u8),
@@ -50,6 +52,8 @@ impl fmt::Display for AstIndexed {
             AstIndexed::Mul(inner1, inner2) => inner1.fmt(f).and_then(|_| inner2.fmt(f)).and_then(|_| writeln!(f, "mul")),
             AstIndexed::Div(inner1, inner2) => inner1.fmt(f).and_then(|_| inner2.fmt(f)).and_then(|_| writeln!(f, "div")),
             AstIndexed::Mod(inner1, inner2) => inner1.fmt(f).and_then(|_| inner2.fmt(f)).and_then(|_| writeln!(f, "mod")),
+            AstIndexed::Max(inner1, inner2) => inner1.fmt(f).and_then(|_| inner2.fmt(f)).and_then(|_| writeln!(f, "max")),
+            AstIndexed::Min(inner1, inner2) => inner1.fmt(f).and_then(|_| inner2.fmt(f)).and_then(|_| writeln!(f, "min")),
             AstIndexed::Swap(id0, id1) => writeln!(
                 f,
                 "sap {id0}\npfa\nsap {id1}\npfa\nsap {id0}\npta\nsap {id1}\npta"
@@ -107,6 +111,14 @@ impl AstIndexed {
                 Box::new(AstIndexed::new(*inner2, memmgr, state))
             ),
             Ast::Mod(inner1, inner2) => AstIndexed::Mod(
+                Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
+                Box::new(AstIndexed::new(*inner2, memmgr, state))
+            ),
+            Ast::Max(inner1, inner2) => AstIndexed::Max(
+                Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
+                Box::new(AstIndexed::new(*inner2, memmgr, state))
+            ),
+            Ast::Min(inner1, inner2) => AstIndexed::Min(
                 Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
                 Box::new(AstIndexed::new(*inner2, memmgr, state))
             ),

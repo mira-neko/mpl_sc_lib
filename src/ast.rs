@@ -22,6 +22,8 @@ pub(super) enum Ast {
     Mul(Box<Ast>, Box<Ast>),
     Div(Box<Ast>, Box<Ast>),
     Mod(Box<Ast>, Box<Ast>),
+    Max(Box<Ast>, Box<Ast>),
+    Min(Box<Ast>, Box<Ast>),
     Swap(String, String),
     Label(String),
     Goto(String),
@@ -197,7 +199,7 @@ impl Ast {
     assign_op!(assign_op_mod, " %= ", Mod);
 
     fn func(input: &str) -> IResult<&str, Ast> {
-        alt((Ast::inp, Ast::print))(input)
+        alt((Ast::inp, Ast::print, Ast::max, Ast::min))(input)
     }
 
     fn inp(input: &str) -> IResult<&str, Ast> {
@@ -208,9 +210,27 @@ impl Ast {
     fn print(input: &str) -> IResult<&str, Ast> {
         let (rest, value) = delimited(
             tag("print("),
-            separated_list0(terminated(tag(","), multispace0), Ast::exp),
+            separated_list0(tag(", "), Ast::exp),
             tag(")"),
         )(input)?;
         Ok((rest, Ast::Print(value)))
+    }
+
+    fn max(input: &str) -> IResult<&str, Ast> {
+        let (rest, (inner1, inner2)) = delimited(
+            tag("max("),
+            pair(terminated(Ast::exp, tag(", ")), Ast::exp),
+            tag(")"),
+        )(input)?;
+        Ok((rest, Ast::Max(Box::new(inner1), Box::new(inner2))))
+    }
+
+    fn min(input: &str) -> IResult<&str, Ast> {
+        let (rest, (inner1, inner2)) = delimited(
+            tag("min("),
+            pair(terminated(Ast::exp, tag(", ")), Ast::exp),
+            tag(")"),
+        )(input)?;
+        Ok((rest, Ast::Min(Box::new(inner1), Box::new(inner2))))
     }
 }
