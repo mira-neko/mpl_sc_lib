@@ -1,31 +1,27 @@
 use std::fmt;
 mod ast;
 mod ast_indexed;
+mod ir;
 
-#[derive(Debug)]
-pub struct Parser(ast_indexed::AstIndexed);
+pub struct Parser(ir::Ir);
 
 impl From<&str> for Parser {
     fn from(s: &str) -> Parser {
-        Parser(ast_indexed::AstIndexed::from(ast::Ast::from(s)))
+        Parser(ir::Ir::from(ast_indexed::AstIndexed::from(ast::Ast::from(s))))
     }
 }
 
 impl fmt::Display for Parser {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        self.0.fmt(f)
+        mpl_vm::Program::from((self.0.codegen(), || None)).fmt(f)
     }
 }
 
 impl Parser {
     #[allow(dead_code)]
-    pub fn eval<F: FnMut() -> Option<f64>>(&self, input: &mut F, debug: bool) -> Option<()> {
-        for res in mplvm_parser::parse(&self.0.to_string(), input, debug) {
-            let Ok(opt) = res else {
-                return None
-            };
-
-            if let Some(val) = opt {
+    pub fn eval<F: FnMut() -> Option<f64>>(self, input: &mut F, debug: bool) -> Option<()> {
+        for res in mpl_vm::Program::from((self.0.codegen(), input, debug)) {
+            if let Some(val) = res.ok()? {
                 println!("{val}");
             }
         }
