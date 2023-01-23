@@ -24,21 +24,22 @@ pub(super) enum AstIndexed {
     GotoIfNot(String, Box<AstIndexed>),
 }
 
+enum Kind {
+    While,
+    If,
+}
+
 struct State {
-    _while: Vec<(Box<AstIndexed>, bool, usize)>,
-    _if: Vec<(Box<AstIndexed>, bool, usize)>,
-    whilec: usize,
-    ifc: usize,
+    blocks: Vec<(Kind, Box<AstIndexed>, bool, usize)>,
+    counter: usize,
 }
 
 impl From<Ast> for AstIndexed {
     fn from(ast: Ast) -> AstIndexed {
         let memmgr = Rc::new(RefCell::new(HashMap::new()));
         let state = Rc::new(RefCell::new(State {
-            _while: Vec::new(),
-            _if: Vec::new(),
-            whilec: 0,
-            ifc: 0,
+            blocks: Vec::new(),
+            counter: 0,
         }));
         AstIndexed::new(ast, memmgr, state)
     }
@@ -58,8 +59,8 @@ impl AstIndexed {
                         .map(|inst| AstIndexed::new(inst, memmgr.clone(), state.clone()))
                         .collect(),
                 );
-                if !state.borrow()._while.is_empty() {
-                    panic!("unclosed while");
+                if !state.borrow().blocks.is_empty() {
+                    panic!("unclosed block");
                 }
                 root
             }
@@ -118,13 +119,13 @@ impl AstIndexed {
             Ast::While(cond) => {
                 let mut local_state = state.borrow_mut();
                 let icond = AstIndexed::new(*cond, memmgr, state.clone());
-                let whilec = local_state.whilec;
-                let name = format!("while_{icond:?}true{}", whilec);
-                let name_end = format!("end_while_{icond:?}true{}", whilec);
+                let counter = local_state.counter;
+                let name = format!("while_{icond:?}true{}", counter);
+                let name_end = format!("end_while_{icond:?}true{}", counter);
                 local_state
-                    ._while
-                    .push((Box::new(icond.clone()), true, whilec));
-                local_state.whilec += 1;
+                    .blocks
+                    .push((Kind::While, Box::new(icond.clone()), true, counter));
+                local_state.counter += 1;
                 AstIndexed::Root(vec![
                     AstIndexed::GotoIfNot(name_end, Box::new(icond)),
                     AstIndexed::Label(name),
@@ -133,13 +134,13 @@ impl AstIndexed {
             Ast::WhileNot(cond) => {
                 let mut local_state = state.borrow_mut();
                 let icond = AstIndexed::new(*cond, memmgr, state.clone());
-                let whilec = local_state.whilec;
-                let name = format!("while_{icond:?}false{}", whilec);
-                let name_end = format!("end_while_{icond:?}false{}", whilec);
+                let counter = local_state.counter;
+                let name = format!("while_{icond:?}false{}", counter);
+                let name_end = format!("end_while_{icond:?}false{}", counter);
                 local_state
-                    ._while
-                    .push((Box::new(icond.clone()), false, whilec));
-                local_state.whilec += 1;
+                    .blocks
+                    .push((Kind::While, Box::new(icond.clone()), false, counter));
+                local_state.counter += 1;
                 AstIndexed::Root(vec![
                     AstIndexed::GotoIf(name_end, Box::new(icond)),
                     AstIndexed::Label(name),
@@ -148,46 +149,52 @@ impl AstIndexed {
             Ast::If(cond) => {
                 let mut local_state = state.borrow_mut();
                 let icond = AstIndexed::new(*cond, memmgr, state.clone());
-                let ifc = local_state.ifc;
-                let name_end = format!("end_if_{icond:?}true{}", ifc);
-                local_state._if.push((Box::new(icond.clone()), true, ifc));
-                local_state.ifc += 1;
+                let counter = local_state.counter;
+                let name_end = format!("end_if_{icond:?}true{}", counter);
+                local_state
+                    .blocks
+                    .push((Kind::If, Box::new(icond.clone()), true, counter));
+                local_state.counter += 1;
                 AstIndexed::GotoIfNot(name_end, Box::new(icond))
             }
             Ast::IfNot(cond) => {
                 let mut local_state = state.borrow_mut();
                 let icond = AstIndexed::new(*cond, memmgr, state.clone());
-                let ifc = local_state.ifc;
-                let name_end = format!("end_if_{icond:?}false{}", ifc);
-                local_state._if.push((Box::new(icond.clone()), false, ifc));
-                local_state.ifc += 1;
+                let counter = local_state.counter;
+                let name_end = format!("end_if_{icond:?}false{}", counter);
+                local_state
+                    .blocks
+                    .push((Kind::If, Box::new(icond.clone()), false, counter));
+                local_state.counter += 1;
                 AstIndexed::GotoIf(name_end, Box::new(icond))
             }
-            Ast::Elihw => {
+            Ast::End => {
                 let mut local_state = state.borrow_mut();
-                let (cond, ty, whilec) = local_state
-                    ._while
+                let (kind, cond, ty, counter) = local_state
+                    .blocks
                     .pop()
-                    .expect("there are more elihws then whiles");
-                let name = format!("while_{cond:?}{ty}{whilec}");
-                let name_end = format!("end_while_{cond:?}{ty}{whilec}");
-                if ty {
-                    AstIndexed::Root(vec![
-                        AstIndexed::GotoIf(name, cond),
-                        AstIndexed::Label(name_end),
-                    ])
-                } else {
-                    AstIndexed::Root(vec![
-                        AstIndexed::GotoIfNot(name, cond),
-                        AstIndexed::Label(name_end),
-                    ])
+                    .expect("there are more ends then blocks");
+                match kind {
+                    Kind::While => {
+                        let name = format!("while_{cond:?}{ty}{counter}");
+                        let name_end = format!("end_while_{cond:?}{ty}{counter}");
+                        if ty {
+                            AstIndexed::Root(vec![
+                                AstIndexed::GotoIf(name, cond),
+                                AstIndexed::Label(name_end),
+                            ])
+                        } else {
+                            AstIndexed::Root(vec![
+                                AstIndexed::GotoIfNot(name, cond),
+                                AstIndexed::Label(name_end),
+                            ])
+                        }
+                    }
+                    Kind::If => {
+                        let name_end = format!("end_if_{cond:?}{ty}{counter}");
+                        AstIndexed::Label(name_end)
+                    }
                 }
-            }
-            Ast::Fi => {
-                let mut local_state = state.borrow_mut();
-                let (cond, ty, ifc) = local_state._if.pop().expect("there are more fis then ifs");
-                let name_end = format!("end_if_{cond:?}{ty}{ifc}");
-                AstIndexed::Label(name_end)
             }
         }
     }

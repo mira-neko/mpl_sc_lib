@@ -33,8 +33,7 @@ pub(super) enum Ast {
     WhileNot(Box<Ast>),
     If(Box<Ast>),
     IfNot(Box<Ast>),
-    Elihw,
-    Fi,
+    End,
 }
 
 impl From<&str> for Ast {
@@ -105,8 +104,7 @@ impl Ast {
                 Ast::while_not,
                 Ast::_if,
                 Ast::if_not,
-                Ast::elihw,
-                Ast::fi,
+                Ast::end,
                 Ast::assign,
                 Ast::assign_op,
                 Ast::func,
@@ -156,33 +154,28 @@ impl Ast {
     }
 
     fn _while(input: &str) -> IResult<&str, Ast> {
-        let (rest, value) = delimited(tag("while "), Ast::exp, tag(" = 0"))(input)?;
+        let (rest, value) = delimited(tag("while "), Ast::exp, tag(" = 0 {"))(input)?;
         Ok((rest, Ast::While(Box::new(value))))
     }
 
     fn while_not(input: &str) -> IResult<&str, Ast> {
-        let (rest, value) = delimited(tag("while "), Ast::exp, tag(" != 0"))(input)?;
+        let (rest, value) = delimited(tag("while "), Ast::exp, tag(" != 0 {"))(input)?;
         Ok((rest, Ast::WhileNot(Box::new(value))))
     }
 
     fn _if(input: &str) -> IResult<&str, Ast> {
-        let (rest, value) = delimited(tag("if "), Ast::exp, tag(" = 0"))(input)?;
+        let (rest, value) = delimited(tag("if "), Ast::exp, tag(" = 0 {"))(input)?;
         Ok((rest, Ast::If(Box::new(value))))
     }
 
     fn if_not(input: &str) -> IResult<&str, Ast> {
-        let (rest, value) = delimited(tag("if "), Ast::exp, tag(" != 0"))(input)?;
+        let (rest, value) = delimited(tag("if "), Ast::exp, tag(" != 0 {"))(input)?;
         Ok((rest, Ast::IfNot(Box::new(value))))
     }
 
-    fn elihw(input: &str) -> IResult<&str, Ast> {
-        let (rest, _) = tag("elihw")(input)?;
-        Ok((rest, Ast::Elihw))
-    }
-
-    fn fi(input: &str) -> IResult<&str, Ast> {
-        let (rest, _) = tag("fi")(input)?;
-        Ok((rest, Ast::Fi))
+    fn end(input: &str) -> IResult<&str, Ast> {
+        let (rest, _) = tag("}")(input)?;
+        Ok((rest, Ast::End))
     }
 
     fn assign(input: &str) -> IResult<&str, Ast> {
