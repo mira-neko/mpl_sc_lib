@@ -150,9 +150,7 @@ impl AstIndexed {
                 let icond = AstIndexed::new(*cond, memmgr, state.clone());
                 let ifc = local_state.ifc;
                 let name_end = format!("end_if_{icond:?}true{}", ifc);
-                local_state
-                    ._while
-                    .push((Box::new(icond.clone()), true, ifc));
+                local_state._if.push((Box::new(icond.clone()), true, ifc));
                 local_state.ifc += 1;
                 AstIndexed::GotoIfNot(name_end, Box::new(icond))
             }
@@ -161,9 +159,7 @@ impl AstIndexed {
                 let icond = AstIndexed::new(*cond, memmgr, state.clone());
                 let ifc = local_state.ifc;
                 let name_end = format!("end_if_{icond:?}false{}", ifc);
-                local_state
-                    ._while
-                    .push((Box::new(icond.clone()), false, ifc));
+                local_state._if.push((Box::new(icond.clone()), false, ifc));
                 local_state.ifc += 1;
                 AstIndexed::GotoIf(name_end, Box::new(icond))
             }
@@ -189,10 +185,7 @@ impl AstIndexed {
             }
             Ast::Fi => {
                 let mut local_state = state.borrow_mut();
-                let (cond, ty, ifc) = local_state
-                    ._if
-                    .pop()
-                    .expect("there are more elihws then whiles");
+                let (cond, ty, ifc) = local_state._if.pop().expect("there are more fis then ifs");
                 let name_end = format!("end_if_{cond:?}{ty}{ifc}");
                 AstIndexed::Label(name_end)
             }
