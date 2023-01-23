@@ -14,8 +14,12 @@ enum IrInst {
     Mul,
     Div,
     Mod,
+    Abs,
     Max,
     Min,
+    Eql,
+    Mor,
+    Les,
     Swap(u8, u8),
     Label(String),
     Jmp(String),
@@ -36,8 +40,12 @@ enum IrInst2 {
     Mul,
     Div,
     Mod,
+    Abs,
     Max,
     Min,
+    Eql,
+    Mor,
+    Les,
     Jmp(String),
     Jiz(String),
     Jnz(String),
@@ -93,6 +101,10 @@ impl IrInst {
                 IrInst::update(inner2, ir);
                 ir.push(IrInst::Mod)
             }
+            AstIndexed::Abs(inner) => {
+                IrInst::update(inner, ir);
+                ir.push(IrInst::Abs)
+            }
             AstIndexed::Max(inner1, inner2) => {
                 IrInst::update(inner1, ir);
                 IrInst::update(inner2, ir);
@@ -102,6 +114,21 @@ impl IrInst {
                 IrInst::update(inner1, ir);
                 IrInst::update(inner2, ir);
                 ir.push(IrInst::Min)
+            }
+            AstIndexed::Eql(inner1, inner2) => {
+                IrInst::update(inner1, ir);
+                IrInst::update(inner2, ir);
+                ir.push(IrInst::Eql)
+            }
+            AstIndexed::Mor(inner1, inner2) => {
+                IrInst::update(inner1, ir);
+                IrInst::update(inner2, ir);
+                ir.push(IrInst::Mor)
+            }
+            AstIndexed::Les(inner1, inner2) => {
+                IrInst::update(inner1, ir);
+                IrInst::update(inner2, ir);
+                ir.push(IrInst::Les)
             }
             AstIndexed::Swap(id0, id1) => ir.push(IrInst::Swap(*id0, *id1)),
             AstIndexed::Label(id) => ir.push(IrInst::Label(id.clone())),
@@ -138,8 +165,12 @@ impl IrInst {
             IrInst::Mul => prog.push(IrInst2::Mul),
             IrInst::Div => prog.push(IrInst2::Div),
             IrInst::Mod => prog.push(IrInst2::Mod),
+            IrInst::Abs => prog.push(IrInst2::Abs),
             IrInst::Max => prog.push(IrInst2::Max),
             IrInst::Min => prog.push(IrInst2::Min),
+            IrInst::Eql => prog.push(IrInst2::Eql),
+            IrInst::Mor => prog.push(IrInst2::Mor),
+            IrInst::Les => prog.push(IrInst2::Les),
             IrInst::Swap(id0, id1) => {
                 prog.push(IrInst2::Sap(*id0));
                 prog.push(IrInst2::Pfa);
@@ -179,8 +210,12 @@ impl Ir {
                 IrInst2::Mul => Instructions::Mul,
                 IrInst2::Div => Instructions::Div,
                 IrInst2::Mod => Instructions::Mod,
+                IrInst2::Abs => Instructions::Abs,
                 IrInst2::Max => Instructions::Max,
                 IrInst2::Min => Instructions::Min,
+                IrInst2::Eql => Instructions::Eql,
+                IrInst2::Mor => Instructions::Mor,
+                IrInst2::Les => Instructions::Les,
                 IrInst2::Jmp(id) => Instructions::Jmp(*lblmgr.get(id).unwrap()),
                 IrInst2::Jiz(id) => Instructions::Jiz(*lblmgr.get(id).unwrap()),
                 IrInst2::Jnz(id) => Instructions::Jnz(*lblmgr.get(id).unwrap()),

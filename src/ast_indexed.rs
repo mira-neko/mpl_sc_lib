@@ -15,8 +15,12 @@ pub(super) enum AstIndexed {
     Mul(Box<AstIndexed>, Box<AstIndexed>),
     Div(Box<AstIndexed>, Box<AstIndexed>),
     Mod(Box<AstIndexed>, Box<AstIndexed>),
+    Abs(Box<AstIndexed>),
     Max(Box<AstIndexed>, Box<AstIndexed>),
     Min(Box<AstIndexed>, Box<AstIndexed>),
+    Eql(Box<AstIndexed>, Box<AstIndexed>),
+    Mor(Box<AstIndexed>, Box<AstIndexed>),
+    Les(Box<AstIndexed>, Box<AstIndexed>),
     Swap(u8, u8),
     Label(String),
     Goto(String),
@@ -96,11 +100,26 @@ impl AstIndexed {
                 Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
                 Box::new(AstIndexed::new(*inner2, memmgr, state)),
             ),
+            Ast::Abs(inner) => AstIndexed::Abs(
+                Box::new(AstIndexed::new(*inner, memmgr, state)),
+            ),
             Ast::Max(inner1, inner2) => AstIndexed::Max(
                 Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
                 Box::new(AstIndexed::new(*inner2, memmgr, state)),
             ),
             Ast::Min(inner1, inner2) => AstIndexed::Min(
+                Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
+                Box::new(AstIndexed::new(*inner2, memmgr, state)),
+            ),
+            Ast::Eql(inner1, inner2) => AstIndexed::Eql(
+                Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
+                Box::new(AstIndexed::new(*inner2, memmgr, state)),
+            ),
+            Ast::Mor(inner1, inner2) => AstIndexed::Mor(
+                Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
+                Box::new(AstIndexed::new(*inner2, memmgr, state)),
+            ),
+            Ast::Les(inner1, inner2) => AstIndexed::Les(
                 Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
                 Box::new(AstIndexed::new(*inner2, memmgr, state)),
             ),

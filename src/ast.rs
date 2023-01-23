@@ -22,8 +22,12 @@ pub(super) enum Ast {
     Mul(Box<Ast>, Box<Ast>),
     Div(Box<Ast>, Box<Ast>),
     Mod(Box<Ast>, Box<Ast>),
+    Abs(Box<Ast>),
     Max(Box<Ast>, Box<Ast>),
     Min(Box<Ast>, Box<Ast>),
+    Eql(Box<Ast>, Box<Ast>),
+    Mor(Box<Ast>, Box<Ast>),
+    Les(Box<Ast>, Box<Ast>),
     Swap(String, String),
     Label(String),
     Goto(String),
@@ -200,6 +204,9 @@ impl Ast {
             Ast::op_mul,
             Ast::op_div,
             Ast::op_mod,
+            Ast::op_eql,
+            Ast::op_mor,
+            Ast::op_les,
         ))(input)
     }
 
@@ -208,6 +215,9 @@ impl Ast {
     op!(op_mul, " * ", Mul);
     op!(op_div, " / ", Div);
     op!(op_mod, " % ", Mod);
+    op!(op_eql, " = ", Eql);
+    op!(op_mor, " > ", Mor);
+    op!(op_les, " < ", Les);
 
     fn assign_op(input: &str) -> IResult<&str, Ast> {
         alt((
@@ -226,7 +236,7 @@ impl Ast {
     assign_op!(assign_op_mod, " %= ", Mod);
 
     fn func(input: &str) -> IResult<&str, Ast> {
-        alt((Ast::inp, Ast::print, Ast::max, Ast::min))(input)
+        alt((Ast::inp, Ast::print, Ast::abs, Ast::max, Ast::min))(input)
     }
 
     fn inp(input: &str) -> IResult<&str, Ast> {
@@ -241,6 +251,15 @@ impl Ast {
             tag(")"),
         )(input)?;
         Ok((rest, Ast::Print(value)))
+    }
+
+    fn abs(input: &str) -> IResult<&str, Ast> {
+        let (rest, value) = delimited(
+            tag("abs("),
+            Ast::exp,
+            tag(")"),
+        )(input)?;
+        Ok((rest, Ast::Abs(Box::new(value))))
     }
 
     fn max(input: &str) -> IResult<&str, Ast> {
