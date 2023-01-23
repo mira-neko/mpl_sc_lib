@@ -158,22 +158,22 @@ impl Ast {
     }
 
     fn _while(input: &str) -> IResult<&str, Ast> {
-        let (rest, value) = delimited(tag("while "), Ast::exp, tag(" = 0 {"))(input)?;
+        let (rest, value) = delimited(tag("while not "), Ast::exp, tag(" {"))(input)?;
         Ok((rest, Ast::While(Box::new(value))))
     }
 
     fn while_not(input: &str) -> IResult<&str, Ast> {
-        let (rest, value) = delimited(tag("while "), Ast::exp, tag(" != 0 {"))(input)?;
+        let (rest, value) = delimited(tag("while "), Ast::exp, tag(" {"))(input)?;
         Ok((rest, Ast::WhileNot(Box::new(value))))
     }
 
     fn _if(input: &str) -> IResult<&str, Ast> {
-        let (rest, value) = delimited(tag("if "), Ast::exp, tag(" = 0 {"))(input)?;
+        let (rest, value) = delimited(tag("if not "), Ast::exp, tag(" {"))(input)?;
         Ok((rest, Ast::If(Box::new(value))))
     }
 
     fn if_not(input: &str) -> IResult<&str, Ast> {
-        let (rest, value) = delimited(tag("if "), Ast::exp, tag(" != 0 {"))(input)?;
+        let (rest, value) = delimited(tag("if "), Ast::exp, tag(" {"))(input)?;
         Ok((rest, Ast::IfNot(Box::new(value))))
     }
 
@@ -254,11 +254,7 @@ impl Ast {
     }
 
     fn abs(input: &str) -> IResult<&str, Ast> {
-        let (rest, value) = delimited(
-            tag("abs("),
-            Ast::exp,
-            tag(")"),
-        )(input)?;
+        let (rest, value) = delimited(tag("abs("), Ast::exp, tag(")"))(input)?;
         Ok((rest, Ast::Abs(Box::new(value))))
     }
 

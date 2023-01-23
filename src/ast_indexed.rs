@@ -100,9 +100,7 @@ impl AstIndexed {
                 Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
                 Box::new(AstIndexed::new(*inner2, memmgr, state)),
             ),
-            Ast::Abs(inner) => AstIndexed::Abs(
-                Box::new(AstIndexed::new(*inner, memmgr, state)),
-            ),
+            Ast::Abs(inner) => AstIndexed::Abs(Box::new(AstIndexed::new(*inner, memmgr, state))),
             Ast::Max(inner1, inner2) => AstIndexed::Max(
                 Box::new(AstIndexed::new(*inner1, memmgr.clone(), state.clone())),
                 Box::new(AstIndexed::new(*inner2, memmgr, state)),
