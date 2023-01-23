@@ -25,13 +25,16 @@ pub(super) enum AstIndexed {
 }
 
 struct State {
-    _while: Vec<(Box<AstIndexed>, bool)>,
+    _while: Vec<(Box<AstIndexed>, bool, usize)>,
+    _if: Vec<(Box<AstIndexed>, bool, usize)>,
+    whilec: usize,
+    ifc: usize,
 }
 
 impl From<Ast> for AstIndexed {
     fn from(ast: Ast) -> AstIndexed {
         let memmgr = Rc::new(RefCell::new(HashMap::new()));
-        let state = Rc::new(RefCell::new(State { _while: Vec::new() }));
+        let state = Rc::new(RefCell::new(State { _while: Vec::new(), _if: Vec::new(), whilec: 0, ifc: 0 }));
         AstIndexed::new(ast, memmgr, state)
     }
 }
@@ -112,9 +115,11 @@ impl AstIndexed {
             Ast::While(cond) => {
                 let mut local_state = state.borrow_mut();
                 let icond = AstIndexed::new(*cond, memmgr, state.clone());
-                let name = format!("while_{icond:?}");
-                let name_end = format!("end_while_{icond:?}");
-                local_state._while.push((Box::new(icond.clone()), true));
+                let whilec = local_state.whilec;
+                let name = format!("while_{icond:?}true{}", whilec);
+                let name_end = format!("end_while_{icond:?}true{}", whilec);
+                local_state._while.push((Box::new(icond.clone()), true, whilec));
+                local_state.whilec += 1;
                 AstIndexed::Root(vec![
                     AstIndexed::GotoIfNot(name_end, Box::new(icond)),
                     AstIndexed::Label(name)
@@ -123,19 +128,39 @@ impl AstIndexed {
             Ast::WhileNot(cond) => {
                 let mut local_state = state.borrow_mut();
                 let icond = AstIndexed::new(*cond, memmgr, state.clone());
-                let name = format!("while_{icond:?}");
-                let name_end = format!("end_while_{icond:?}");
-                local_state._while.push((Box::new(icond.clone()), false));
+                let whilec = local_state.whilec;
+                let name = format!("while_{icond:?}false{}", whilec);
+                let name_end = format!("end_while_{icond:?}false{}", whilec);
+                local_state._while.push((Box::new(icond.clone()), false, whilec));
+                local_state.whilec += 1;
                 AstIndexed::Root(vec![
                     AstIndexed::GotoIf(name_end, Box::new(icond)),
                     AstIndexed::Label(name)
                 ])
             }
+            Ast::If(cond) => {
+                let mut local_state = state.borrow_mut();
+                let icond = AstIndexed::new(*cond, memmgr, state.clone());
+                let ifc = local_state.ifc;
+                let name_end = format!("end_if_{icond:?}true{}", ifc);
+                local_state._while.push((Box::new(icond.clone()), true, ifc));
+                local_state.ifc += 1;
+                AstIndexed::GotoIfNot(name_end, Box::new(icond))
+            }
+            Ast::IfNot(cond) => {
+                let mut local_state = state.borrow_mut();
+                let icond = AstIndexed::new(*cond, memmgr, state.clone());
+                let ifc = local_state.ifc;
+                let name_end = format!("end_if_{icond:?}false{}", ifc);
+                local_state._while.push((Box::new(icond.clone()), false, ifc));
+                local_state.ifc += 1;
+                AstIndexed::GotoIf(name_end, Box::new(icond))
+            }
             Ast::Elihw => {
                 let mut local_state = state.borrow_mut();
-                let (cond, ty) = local_state._while.pop().expect("there are more elihws then whiles");
-                let name = format!("while_{cond:?}");
-                let name_end = format!("end_while_{cond:?}");
+                let (cond, ty, whilec) = local_state._while.pop().expect("there are more elihws then whiles");
+                let name = format!("while_{cond:?}{ty}{whilec}");
+                let name_end = format!("end_while_{cond:?}{ty}{whilec}");
                 if ty {
                     AstIndexed::Root(vec![
                         AstIndexed::GotoIf(name, cond),
@@ -147,6 +172,12 @@ impl AstIndexed {
                         AstIndexed::Label(name_end)
                     ])
                 }
+            }
+            Ast::Fi => {
+                let mut local_state = state.borrow_mut();
+                let (cond, ty, ifc) = local_state._if.pop().expect("there are more elihws then whiles");
+                let name_end = format!("end_if_{cond:?}{ty}{ifc}");
+                AstIndexed::Label(name_end)
             }
         }
     }

@@ -31,7 +31,10 @@ pub(super) enum Ast {
     GotoIfNot(String, Box<Ast>),
     While(Box<Ast>),
     WhileNot(Box<Ast>),
+    If(Box<Ast>),
+    IfNot(Box<Ast>),
     Elihw,
+    Fi,
 }
 
 impl From<&str> for Ast {
@@ -87,7 +90,10 @@ impl Ast {
                 Ast::goto,
                 Ast::_while,
                 Ast::while_not,
+                Ast::_if,
+                Ast::if_not,
                 Ast::elihw,
+                Ast::fi,
                 Ast::assign,
                 Ast::assign_op,
                 Ast::func,
@@ -146,9 +152,24 @@ impl Ast {
         Ok((rest, Ast::WhileNot(Box::new(value))))
     }
 
+    fn _if(input: &str) -> IResult<&str, Ast> {
+        let (rest, value) = delimited(tag("if "), Ast::exp, tag(" = 0"))(input)?;
+        Ok((rest, Ast::If(Box::new(value))))
+    }
+
+    fn if_not(input: &str) -> IResult<&str, Ast> {
+        let (rest, value) = delimited(tag("if "), Ast::exp, tag(" != 0"))(input)?;
+        Ok((rest, Ast::IfNot(Box::new(value))))
+    }
+
     fn elihw(input: &str) -> IResult<&str, Ast> {
         let (rest, _) = tag("elihw")(input)?;
         Ok((rest, Ast::Elihw))
+    }
+
+    fn fi(input: &str) -> IResult<&str, Ast> {
+        let (rest, _) = tag("fi")(input)?;
+        Ok((rest, Ast::Fi))
     }
 
     fn assign(input: &str) -> IResult<&str, Ast> {
