@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use super::ast::Ast;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(super) enum AstIndexed {
     Root(Vec<AstIndexed>),
     Value(f64),
@@ -113,24 +113,39 @@ impl AstIndexed {
                 let mut local_state = state.borrow_mut();
                 let icond = AstIndexed::new(*cond, memmgr, state.clone());
                 let name = format!("while_{icond:?}");
-                local_state._while.push((Box::new(icond), true));
-                AstIndexed::Label(name)
+                let name_end = format!("end_while_{icond:?}");
+                local_state._while.push((Box::new(icond.clone()), true));
+                AstIndexed::Root(vec![
+                    AstIndexed::GotoIfNot(name_end, Box::new(icond)),
+                    AstIndexed::Label(name)
+                ])
             }
             Ast::WhileNot(cond) => {
                 let mut local_state = state.borrow_mut();
                 let icond = AstIndexed::new(*cond, memmgr, state.clone());
                 let name = format!("while_{icond:?}");
-                local_state._while.push((Box::new(icond), false));
-                AstIndexed::Label(name)
+                let name_end = format!("end_while_{icond:?}");
+                local_state._while.push((Box::new(icond.clone()), false));
+                AstIndexed::Root(vec![
+                    AstIndexed::GotoIf(name_end, Box::new(icond)),
+                    AstIndexed::Label(name)
+                ])
             }
             Ast::Elihw => {
                 let mut local_state = state.borrow_mut();
                 let (cond, ty) = local_state._while.pop().expect("there are more elihws then whiles");
                 let name = format!("while_{cond:?}");
+                let name_end = format!("end_while_{cond:?}");
                 if ty {
-                    AstIndexed::GotoIf(name, cond)
+                    AstIndexed::Root(vec![
+                        AstIndexed::GotoIf(name, cond),
+                        AstIndexed::Label(name_end)
+                    ])
                 } else {
-                    AstIndexed::GotoIfNot(name, cond)
+                    AstIndexed::Root(vec![
+                        AstIndexed::GotoIfNot(name, cond),
+                        AstIndexed::Label(name_end)
+                    ])
                 }
             }
         }
