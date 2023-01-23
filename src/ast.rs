@@ -47,8 +47,21 @@ macro_rules! op {
     ($name:ident, $op:literal, $op_name:ident) => {
         fn $name(input: &str) -> IResult<&str, Ast> {
             let (rest, value) = pair(
-                terminated(alt((delimited(tag("("), Ast::op, tag(")")), Ast::func, Ast::value, Ast::idnt)), tag($op)),
-                alt((delimited(tag("("), Ast::op, tag(")")), Ast::func, Ast::value, Ast::idnt)),
+                terminated(
+                    alt((
+                        delimited(tag("("), Ast::op, tag(")")),
+                        Ast::func,
+                        Ast::value,
+                        Ast::idnt,
+                    )),
+                    tag($op),
+                ),
+                alt((
+                    delimited(tag("("), Ast::op, tag(")")),
+                    Ast::func,
+                    Ast::value,
+                    Ast::idnt,
+                )),
             )(input)?;
             Ok((rest, Ast::$op_name(Box::new(value.0), Box::new(value.1))))
         }
@@ -65,7 +78,7 @@ macro_rules! assign_op {
                     value.0.to_string(),
                     Box::new(Ast::$op_name(
                         Box::new(Ast::Idnt(value.0.to_string())),
-                        Box::new(value.1)
+                        Box::new(value.1),
                     )),
                 ),
             ))

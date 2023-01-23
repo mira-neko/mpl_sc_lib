@@ -7,7 +7,9 @@ pub struct Parser(ir::Ir);
 
 impl From<&str> for Parser {
     fn from(s: &str) -> Parser {
-        Parser(ir::Ir::from(ast_indexed::AstIndexed::from(ast::Ast::from(s))))
+        Parser(ir::Ir::from(ast_indexed::AstIndexed::from(ast::Ast::from(
+            s,
+        ))))
     }
 }
 

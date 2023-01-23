@@ -48,70 +48,70 @@ pub(super) struct Ir(Vec<IrInst>);
 impl From<AstIndexed> for Ir {
     fn from(ai: AstIndexed) -> Ir {
         let mut ir = Vec::new();
-        IrInst::new(&ai, &mut ir);
+        IrInst::update(&ai, &mut ir);
         Ir(ir)
     }
 }
 
 impl IrInst {
-    fn new(ai: &AstIndexed, ir: &mut Vec<IrInst>) {
+    fn update(ai: &AstIndexed, ir: &mut Vec<IrInst>) {
         match ai {
-            AstIndexed::Root(inner) => inner.iter().for_each(|inst| IrInst::new(inst, ir)),
+            AstIndexed::Root(inner) => inner.iter().for_each(|inst| IrInst::update(inst, ir)),
             AstIndexed::Value(val) => ir.push(IrInst::Psh(*val)),
-            AstIndexed::Indx(id) => ir.push(IrInst::Pfa(id.clone())),
+            AstIndexed::Indx(id) => ir.push(IrInst::Pfa(*id)),
             AstIndexed::Assign(id, inner) => {
-                IrInst::new(inner, ir);
-                ir.push(IrInst::Pta(id.clone()))
+                IrInst::update(inner, ir);
+                ir.push(IrInst::Pta(*id))
             }
             AstIndexed::Input => ir.push(IrInst::Inp),
             AstIndexed::Print(inner) => inner.iter().for_each(|inst| {
-                IrInst::new(inst, ir);
+                IrInst::update(inst, ir);
                 ir.push(IrInst::Pek)
             }),
             AstIndexed::Add(inner1, inner2) => {
-                IrInst::new(inner1, ir);
-                IrInst::new(inner2, ir);
+                IrInst::update(inner1, ir);
+                IrInst::update(inner2, ir);
                 ir.push(IrInst::Add)
             }
             AstIndexed::Sub(inner1, inner2) => {
-                IrInst::new(inner1, ir);
-                IrInst::new(inner2, ir);
+                IrInst::update(inner1, ir);
+                IrInst::update(inner2, ir);
                 ir.push(IrInst::Sub)
             }
             AstIndexed::Mul(inner1, inner2) => {
-                IrInst::new(inner1, ir);
-                IrInst::new(inner2, ir);
+                IrInst::update(inner1, ir);
+                IrInst::update(inner2, ir);
                 ir.push(IrInst::Mul)
             }
             AstIndexed::Div(inner1, inner2) => {
-                IrInst::new(inner1, ir);
-                IrInst::new(inner2, ir);
+                IrInst::update(inner1, ir);
+                IrInst::update(inner2, ir);
                 ir.push(IrInst::Div)
             }
             AstIndexed::Mod(inner1, inner2) => {
-                IrInst::new(inner1, ir);
-                IrInst::new(inner2, ir);
+                IrInst::update(inner1, ir);
+                IrInst::update(inner2, ir);
                 ir.push(IrInst::Mod)
             }
             AstIndexed::Max(inner1, inner2) => {
-                IrInst::new(inner1, ir);
-                IrInst::new(inner2, ir);
+                IrInst::update(inner1, ir);
+                IrInst::update(inner2, ir);
                 ir.push(IrInst::Max)
             }
             AstIndexed::Min(inner1, inner2) => {
-                IrInst::new(inner1, ir);
-                IrInst::new(inner2, ir);
+                IrInst::update(inner1, ir);
+                IrInst::update(inner2, ir);
                 ir.push(IrInst::Min)
             }
-            AstIndexed::Swap(id0, id1) => ir.push(IrInst::Swap(id0.clone(), id1.clone())),
+            AstIndexed::Swap(id0, id1) => ir.push(IrInst::Swap(*id0, *id1)),
             AstIndexed::Label(id) => ir.push(IrInst::Label(id.clone())),
             AstIndexed::Goto(id) => ir.push(IrInst::Jmp(id.clone())),
             AstIndexed::GotoIf(id, inner) => {
-                IrInst::new(inner, ir);
+                IrInst::update(inner, ir);
                 ir.push(IrInst::Jiz(id.clone()))
             }
             AstIndexed::GotoIfNot(id, inner) => {
-                IrInst::new(inner, ir);
+                IrInst::update(inner, ir);
                 ir.push(IrInst::Jnz(id.clone()))
             }
         }
@@ -121,11 +121,11 @@ impl IrInst {
         match self {
             IrInst::Psh(val) => prog.push(IrInst2::Psh(*val)),
             IrInst::Pfa(id) => {
-                prog.push(IrInst2::Sap(id.clone()));
+                prog.push(IrInst2::Sap(*id));
                 prog.push(IrInst2::Pfa)
             }
             IrInst::Pta(id) => {
-                prog.push(IrInst2::Sap(id.clone()));
+                prog.push(IrInst2::Sap(*id));
                 prog.push(IrInst2::Pta)
             }
             IrInst::Inp => prog.push(IrInst2::Inp),
@@ -141,13 +141,13 @@ impl IrInst {
             IrInst::Max => prog.push(IrInst2::Max),
             IrInst::Min => prog.push(IrInst2::Min),
             IrInst::Swap(id0, id1) => {
-                prog.push(IrInst2::Sap(id0.clone()));
+                prog.push(IrInst2::Sap(*id0));
                 prog.push(IrInst2::Pfa);
-                prog.push(IrInst2::Sap(id1.clone()));
+                prog.push(IrInst2::Sap(*id1));
                 prog.push(IrInst2::Pfa);
-                prog.push(IrInst2::Sap(id0.clone()));
+                prog.push(IrInst2::Sap(*id0));
                 prog.push(IrInst2::Pta);
-                prog.push(IrInst2::Sap(id1.clone()));
+                prog.push(IrInst2::Sap(*id1));
                 prog.push(IrInst2::Pta)
             }
             IrInst::Jmp(id) => prog.push(IrInst2::Jmp(id.clone())),
@@ -165,24 +165,26 @@ impl Ir {
         for inst in &self.0 {
             inst.codegen(&mut prog, &mut lblmgr);
         }
-        prog.iter().map(|inst| match inst {
-            IrInst2::Psh(val) => Instructions::Psh(*val),
-            IrInst2::Sap(id) => Instructions::Sap(*id),
-            IrInst2::Pfa => Instructions::Pfa,
-            IrInst2::Pta => Instructions::Pta,
-            IrInst2::Pek => Instructions::Pek,
-            IrInst2::Pop => Instructions::Pop,
-            IrInst2::Inp => Instructions::Inp,
-            IrInst2::Add => Instructions::Add,
-            IrInst2::Sub => Instructions::Sub,
-            IrInst2::Mul => Instructions::Mul,
-            IrInst2::Div => Instructions::Div,
-            IrInst2::Mod => Instructions::Mod,
-            IrInst2::Max => Instructions::Max,
-            IrInst2::Min => Instructions::Min,
-            IrInst2::Jmp(id) => Instructions::Jmp(*lblmgr.get(id).unwrap()),
-            IrInst2::Jiz(id) => Instructions::Jiz(*lblmgr.get(id).unwrap()),
-            IrInst2::Jnz(id) => Instructions::Jnz(*lblmgr.get(id).unwrap()),
-        }).collect()
+        prog.iter()
+            .map(|inst| match inst {
+                IrInst2::Psh(val) => Instructions::Psh(*val),
+                IrInst2::Sap(id) => Instructions::Sap(*id),
+                IrInst2::Pfa => Instructions::Pfa,
+                IrInst2::Pta => Instructions::Pta,
+                IrInst2::Pek => Instructions::Pek,
+                IrInst2::Pop => Instructions::Pop,
+                IrInst2::Inp => Instructions::Inp,
+                IrInst2::Add => Instructions::Add,
+                IrInst2::Sub => Instructions::Sub,
+                IrInst2::Mul => Instructions::Mul,
+                IrInst2::Div => Instructions::Div,
+                IrInst2::Mod => Instructions::Mod,
+                IrInst2::Max => Instructions::Max,
+                IrInst2::Min => Instructions::Min,
+                IrInst2::Jmp(id) => Instructions::Jmp(*lblmgr.get(id).unwrap()),
+                IrInst2::Jiz(id) => Instructions::Jiz(*lblmgr.get(id).unwrap()),
+                IrInst2::Jnz(id) => Instructions::Jnz(*lblmgr.get(id).unwrap()),
+            })
+            .collect()
     }
 }
